@@ -97,6 +97,9 @@ class NotifyApi:
         response = self.session.post(uri, json=data)
         return response
 
+    def send_message(self, message):
+        return self.post('', {'message': message})
+
     def _get_signature(self, timestamp: int, uri: str, method: str, contenthash: str) -> str:
         """Генерирует HMAC-SHA512 сигнатуру."""
         parsed = urlparse(uri)
