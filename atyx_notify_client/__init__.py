@@ -79,14 +79,15 @@ class NotifyApi:
         timestamp = get_timestamp()
         method = 'post'
         uri = ''.join((self.baseurl, url))
+        original_uri = uri
 
         # Strip port from URI for consistent signing (nginx strips it from Host header)
         parsed = urlparse(uri)
         netloc = parsed.hostname
-        uri = f'{parsed.scheme}://{netloc}{parsed.path}'
+        signed_uri = f'{parsed.scheme}://{netloc}{parsed.path}'
 
         contenthash = get_contenthash(data)
-        signature = self._get_signature(timestamp, uri, method, contenthash)
+        signature = self._get_signature(timestamp, signed_uri, method, contenthash)
 
         self.session.headers.update({
             'X-ATYX-TIMESTAMP': str(timestamp),
@@ -94,7 +95,7 @@ class NotifyApi:
             'X-ATYX-SIGNATURE': signature,
         })
 
-        response = self.session.post(uri, json=data)
+        response = self.session.post(original_uri, json=data)
         return response
 
     def send_message(self, message):
