@@ -189,3 +189,7 @@ CI устанавливает клиент из текущего checkout, за�
 Для уведомлений добавьте в Gitea Secrets `ATYX_API_KEY` и `ATYX_API_SECRET`.
 Это ключи канала CI-уведомлений; для live-проверки используются отдельно
 `NOTIFY_TEST_APIKEY` и `NOTIFY_TEST_APISECRET`.
+
+После изменения workflow или общего action уведомлений запустите CI через
+новый push в `master` либо вручную в Actions. Проверьте результат job `test`
+и отправку уведомления в job `notify`.
