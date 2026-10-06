@@ -9,6 +9,12 @@ from atyx_notify_client import NotifyApi
 
 
 URL = 'https://notify.atyx.ru/notify/'
+KNOWN_ERRORS = {
+    'invalid auth token', 'invalid timestamp', 'apikey not available',
+    'timestamp not available', 'apisignature not available', 'timestamp is too old',
+    'account or apikey deactivated', 'apikey not found', 'signature not valid',
+    'invalid message_ucs2', 'invalid plain', 'message not available', 'message not sent',
+}
 
 
 class TestFailure(Exception):
@@ -22,6 +28,21 @@ class TimedSession(requests.Session):
         return super().request(method, url, **kwargs)
 
 
+def describe_result(result):
+    """Report fixed API error messages without logging arbitrary response data."""
+    if not isinstance(result, dict):
+        return 'response is not an object'
+    status = result.get('status')
+    summary = f'status={status}' if status in ('ok', 'error') else 'status=unknown'
+    errors = result.get('errors')
+    if isinstance(errors, list):
+        safe_errors = [error if isinstance(error, str) and error in KNOWN_ERRORS
+                       else '<unrecognized error>' for error in errors[:20]]
+        if safe_errors:
+            summary += '; errors=' + ', '.join(safe_errors)
+    return summary
+
+
 def check_response(response, label, expected_status, expected_error=None):
     if response.status_code != 200:
         raise TestFailure(f'{label}: unexpected HTTP status {response.status_code}')
@@ -30,9 +51,9 @@ def check_response(response, label, expected_status, expected_error=None):
     except ValueError:
         raise TestFailure(f'{label}: response is not JSON') from None
     if not isinstance(result, dict) or result.get('status') != expected_status:
-        raise TestFailure(f'{label}: unexpected API status')
+        raise TestFailure(f'{label}: unexpected API status ({describe_result(result)})')
     if expected_error is not None and expected_error not in result.get('errors', []):
-        raise TestFailure(f'{label}: expected rejection reason missing')
+        raise TestFailure(f'{label}: expected rejection reason missing ({describe_result(result)})')
     print(f'PASS: {label}', flush=True)
 
 
