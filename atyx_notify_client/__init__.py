@@ -27,7 +27,7 @@ class NotifyApi:
     - проверку сигнатур (серверная часть)
     """
 
-    DEFAULT_BASEURL = 'https://notify.atyx.ru:8443/notify/'
+    DEFAULT_BASEURL = 'https://notify.atyx.ru/notify/'
     TIMESTAMP_TOLERANCE_MS = 5000  # 5 секунд
 
     def __init__(self, apikey: str, apisecret: str, baseurl: str = None):

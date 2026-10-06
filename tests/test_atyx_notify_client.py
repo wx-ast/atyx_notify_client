@@ -86,9 +86,10 @@ class TestNotifyApiInit:
         client = NotifyApi("mykey", "mysecret")
         assert client.apisecret == "mysecret"
 
-    def test_uses_default_baseurl_when_not_provided(self):
+    def test_uses_default_baseurl_when_not_provided(self, monkeypatch):
+        monkeypatch.delenv("NOTIFY_BASEURL", raising=False)
         client = NotifyApi("mykey", "mysecret")
-        assert client.baseurl == NotifyApi.DEFAULT_BASEURL
+        assert client.baseurl == "https://notify.atyx.ru/notify/"
 
     def test_uses_provided_baseurl(self):
         client = NotifyApi("mykey", "mysecret", baseurl="http://localhost:9999/notify/")
@@ -333,11 +334,11 @@ class TestPost:
                 mock_post.return_value = MagicMock(status_code=200)
                 client.post("/endpoint", data)
                 mock_post.assert_called_once_with(
-                    "https://notify.atyx.ru/notify//endpoint",
+                    "https://notify.atyx.ru:8443/notify//endpoint",
                     json=data,
                 )
 
-    def test_strips_port_from_url(self):
+    def test_preserves_explicit_port_in_request_url(self):
         client = self._make_client()
         data = {}
 
@@ -346,7 +347,7 @@ class TestPost:
                 mock_post.return_value = MagicMock(status_code=200)
                 client.post("/test", data)
                 called_url = mock_post.call_args[0][0]
-                assert ":8443" not in called_url
+                assert called_url == "https://notify.atyx.ru:8443/notify//test"
 
     def test_sets_signature_headers(self):
         client = self._make_client()
@@ -428,10 +429,18 @@ class TestPost:
                 mock_post.return_value = MagicMock(status_code=200)
                 client.post("/test", data)
                 called_url = mock_post.call_args[0][0]
-                assert called_url == "http://custom.host/notify//test"
+                assert called_url == "http://custom.host:3000/notify//test"
 
-    def test_empty_url_path(self):
-        client = self._make_client()
+    @pytest.mark.parametrize(
+        "baseurl, expected_url",
+        [
+            (None, "https://notify.atyx.ru/notify/"),
+            ("https://notify.atyx.ru:8443/notify/", "https://notify.atyx.ru:8443/notify/"),
+        ],
+    )
+    def test_empty_url_path(self, baseurl, expected_url, monkeypatch):
+        monkeypatch.delenv("NOTIFY_BASEURL", raising=False)
+        client = NotifyApi("testkey", "testsecret", baseurl=baseurl)
         data = {}
 
         with freeze_time("2024-01-01 00:00:00"):
@@ -439,4 +448,4 @@ class TestPost:
                 mock_post.return_value = MagicMock(status_code=200)
                 client.post("", data)
                 called_url = mock_post.call_args[0][0]
-                assert called_url == "https://notify.atyx.ru/notify/"
+                assert called_url == expected_url
