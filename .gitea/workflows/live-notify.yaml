@@ -38,9 +38,10 @@ jobs:
     if: always()
     steps:
       - name: Send ATYX notification (success)
-        uses: wx-ast/atyx_notify@master
+        uses: https://github.com/wx-ast/atyx_notify@96f39e9bbe5a8915576f8a14e7f8f50bc0ac3a19
         if: needs.test.result == 'success'
         env:
+          NOTIFY_BASEURL: https://notify.atyx.ru/notify/
           API_KEY: ${{ secrets.ATYX_API_KEY }}
           API_SECRET: ${{ secrets.ATYX_API_SECRET }}
           MESSAGE: |
@@ -50,9 +51,10 @@ jobs:
             📝 [${{ gitea.sha }}](${{ gitea.server_url }}/${{ gitea.repository }}/commit/${{ gitea.sha }})
             💬 ${{ gitea.event.head_commit.message }}
       - name: Send ATYX notification (failure)
-        uses: wx-ast/atyx_notify@master
+        uses: https://github.com/wx-ast/atyx_notify@96f39e9bbe5a8915576f8a14e7f8f50bc0ac3a19
         if: needs.test.result != 'success'
         env:
+          NOTIFY_BASEURL: https://notify.atyx.ru/notify/
           API_KEY: ${{ secrets.ATYX_API_KEY }}
           API_SECRET: ${{ secrets.ATYX_API_SECRET }}
           MESSAGE: |
