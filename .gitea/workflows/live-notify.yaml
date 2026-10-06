@@ -1,0 +1,33 @@
+name: Client tests and live Notify integration
+
+on:
+  push:
+    branches: ["master"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test current client and real Notify API
+        env:
+          NOTIFY_TEST_APIKEY: ${{ secrets.NOTIFY_TEST_APIKEY }}
+          NOTIFY_TEST_APISECRET: ${{ secrets.NOTIFY_TEST_APISECRET }}
+          NOTIFY_TEST_RUN_ID: ${{ gitea.run_id }}
+        run: |
+          set -eu
+          tar -cf - pyproject.toml README.md atyx_notify_client tests .gitea/scripts |
+            docker run --rm -i \
+              -e NOTIFY_TEST_APIKEY -e NOTIFY_TEST_APISECRET -e NOTIFY_TEST_RUN_ID \
+              python:3.12-slim sh -c '
+                set -eu
+                mkdir -p /app
+                tar -xf - -C /app
+                cd /app
+                pip install --disable-pip-version-check --no-cache-dir ".[dev]"
+                python -m pytest -q
+                python .gitea/scripts/test-live-notify.py
+              '
