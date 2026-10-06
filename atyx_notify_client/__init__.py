@@ -38,7 +38,6 @@ class NotifyApi:
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json;charset=utf-8',
-            'X-ATYX-APIKEY': self.apikey,
         })
 
     @staticmethod
@@ -90,9 +89,7 @@ class NotifyApi:
         signature = self._get_signature(timestamp, signed_uri, method, contenthash)
 
         self.session.headers.update({
-            'X-ATYX-TIMESTAMP': str(timestamp),
-            'X-ATYX-CONTENTHASH': contenthash,
-            'X-ATYX-SIGNATURE': signature,
+            'X-ATYX-TOKEN': f'{self.apikey}:{timestamp}:{signature}',
         })
 
         response = self.session.post(original_uri, json=data)

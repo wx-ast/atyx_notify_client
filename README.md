@@ -101,14 +101,19 @@ result = response.json()
 
 ## Подпись запросов
 
-Клиент автоматически добавляет заголовки:
+Клиент автоматически добавляет один заголовок авторизации:
 
-| Заголовок | Значение |
-| --- | --- |
-| `X-ATYX-APIKEY` | API-ключ |
-| `X-ATYX-TIMESTAMP` | Unix timestamp в миллисекундах |
-| `X-ATYX-CONTENTHASH` | SHA-512 от `json.dumps(data).encode("utf-8")` |
-| `X-ATYX-SIGNATURE` | HMAC-SHA512 с API-секретом |
+```http
+X-ATYX-TOKEN: <apikey>:<timestamp>:<signature>
+```
+
+Токен содержит API-ключ, Unix timestamp в миллисекундах и HMAC-SHA512 подпись
+в hex-формате. SHA-512 от `json.dumps(data).encode("utf-8")` вычисляется на обеих
+сторонах и отдельно не передаётся. API-секрет остаётся на клиенте и сервере.
+
+Сначала обновите сервер Notify до версии с поддержкой `X-ATYX-TOKEN`, затем
+клиент. Обновлённый сервер также принимает прежние заголовки. Если переданы
+оба формата, используется `X-ATYX-TOKEN`; некорректный токен отклоняется.
 
 Строка для подписи имеет вид `timestamp|uri|method|contenthash`.
 Для исходящих запросов метод — `post`. При вычислении подписи URI содержит
@@ -119,17 +124,19 @@ result = response.json()
 входящего запроса:
 
 ```python
+apikey, timestamp, signature = token_from_header.split(":")
+# Найдите секрет по apikey и создайте api = NotifyApi(apikey, secret).
 valid = api.check_signature(
-    signature=signature_from_header,
-    timestamp=int(timestamp_from_header),
+    signature=signature,
+    timestamp=int(timestamp),
     uri="https://notify.atyx.ru/notify/",
     method="post",
     data=parsed_json_body,
 )
 ```
 
-Переменные `signature_from_header`, `timestamp_from_header` и `parsed_json_body`
-в примере берутся из входящего запроса. API-секрет должен соответствовать его
+Переменные `token_from_header` и `parsed_json_body` берутся из входящего
+запроса. Перед проверкой обработайте ошибки формата токена и timestamp. API-секрет должен соответствовать его
 API-ключу. Метод передавайте в нижнем регистре, как при отправке клиентом.
 
 Проверка возвращает `False`, если timestamp неположительный, отличается от

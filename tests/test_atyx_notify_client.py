@@ -112,7 +112,7 @@ class TestNotifyApiInit:
     def test_session_has_correct_headers(self):
         client = NotifyApi("mykey", "mysecret")
         assert client.session.headers["Content-Type"] == "application/json;charset=utf-8"
-        assert client.session.headers["X-ATYX-APIKEY"] == "mykey"
+        assert "X-ATYX-APIKEY" not in client.session.headers
 
 
 # ---------------------------------------------------------------------------
@@ -349,55 +349,41 @@ class TestPost:
                 called_url = mock_post.call_args[0][0]
                 assert called_url == "https://notify.atyx.ru:8443/notify//test"
 
-    def test_sets_signature_headers(self):
-        client = self._make_client()
-        data = {"msg": "hello"}
-
-        with freeze_time("2024-01-01 00:00:00"):
-            with patch.object(client.session, "post") as mock_post:
-                mock_post.return_value = MagicMock(status_code=200)
-                client.post("/endpoint", data)
-
-                # Verify headers were set on the session
-                assert "X-ATYX-TIMESTAMP" in client.session.headers
-                assert "X-ATYX-CONTENTHASH" in client.session.headers
-                assert "X-ATYX-SIGNATURE" in client.session.headers
-
-    def test_timestamp_header_is_int_string(self):
-        client = self._make_client()
-        data = {"msg": "hello"}
-
-        with freeze_time("2024-01-01 00:00:00"):
-            with patch.object(client.session, "post") as mock_post:
-                mock_post.return_value = MagicMock(status_code=200)
-                client.post("/endpoint", data)
-                ts = client.session.headers["X-ATYX-TIMESTAMP"]
-                assert ts.isdigit()
-
-    def test_contenthash_header_is_correct(self):
+    def test_sends_only_three_part_token(self):
         client = self._make_client()
         data = {"key": "value"}
-        expected_hash = get_contenthash(data)
-
         with freeze_time("2024-01-01 00:00:00"):
-            with patch.object(client.session, "post") as mock_post:
-                mock_post.return_value = MagicMock(status_code=200)
+            with patch.object(client.session, "post"):
                 client.post("/endpoint", data)
-                assert client.session.headers["X-ATYX-CONTENTHASH"] == expected_hash
+                auth_headers = {
+                    name: value for name, value in client.session.headers.items()
+                    if name.startswith("X-ATYX-")
+                }
+                timestamp = 1704067200000
+                expected_sig = client._get_signature(
+                    timestamp, "https://notify.atyx.ru/notify//endpoint", "post", get_contenthash(data)
+                )
+                assert auth_headers == {
+                    "X-ATYX-TOKEN": f"testkey:{timestamp}:{expected_sig}"
+                }
 
-    def test_signature_header_is_correct(self):
+    def test_token_updates_between_requests(self):
         client = self._make_client()
-        data = {"key": "value"}
-
-        with freeze_time("2024-01-01 00:00:00"):
-            with patch.object(client.session, "post") as mock_post:
-                mock_post.return_value = MagicMock(status_code=200)
-                client.post("/endpoint", data)
-
-                ts = int(client.session.headers["X-ATYX-TIMESTAMP"])
-                contenthash = client.session.headers["X-ATYX-CONTENTHASH"]
-                expected_sig = client._get_signature(ts, "https://notify.atyx.ru/notify//endpoint", "post", contenthash)
-                assert client.session.headers["X-ATYX-SIGNATURE"] == expected_sig
+        with patch.object(client.session, "post"):
+            with freeze_time("2024-01-01 00:00:00"):
+                client.post("", {"message": "first"})
+                first_token = client.session.headers["X-ATYX-TOKEN"]
+            with freeze_time("2024-01-01 00:00:01"):
+                data = {"message": "second"}
+                client.post("", data)
+                second_token = client.session.headers["X-ATYX-TOKEN"]
+                apikey, timestamp, signature = second_token.split(":")
+                assert apikey == "testkey"
+                assert timestamp == "1704067201000"
+                assert second_token != first_token
+                assert client.check_signature(
+                    signature, int(timestamp), client.baseurl, "post", data
+                )
 
     def test_returns_response(self):
         client = self._make_client()
