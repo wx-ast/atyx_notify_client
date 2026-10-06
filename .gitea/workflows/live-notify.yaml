@@ -45,10 +45,10 @@ jobs:
           API_KEY: ${{ secrets.ATYX_API_KEY }}
           API_SECRET: ${{ secrets.ATYX_API_SECRET }}
           MESSAGE: |
-            🚀 [atyx_notify_client](${{ gitea.server_url }}/${{ gitea.repository }}): Сборка завершена ✅
+            🚀 [atyx_notify_client](https://gitea.atyx.ru/${{ gitea.repository }}): Сборка завершена ✅
 
-            ✅ [Успешно](${{ gitea.server_url }}/${{ gitea.repository }}/actions/runs/${{ gitea.run_id }}) 🌿 ${{ gitea.ref_name }}
-            📝 [${{ gitea.sha }}](${{ gitea.server_url }}/${{ gitea.repository }}/commit/${{ gitea.sha }})
+            ✅ [Успешно](https://gitea.atyx.ru/${{ gitea.repository }}/actions/runs/${{ gitea.run_id }}) 🌿 ${{ gitea.ref_name }}
+            📝 [${{ gitea.sha }}](https://gitea.atyx.ru/${{ gitea.repository }}/commit/${{ gitea.sha }})
             💬 ${{ gitea.event.head_commit.message }}
       - name: Send ATYX notification (failure)
         uses: https://github.com/wx-ast/atyx_notify@96f39e9bbe5a8915576f8a14e7f8f50bc0ac3a19
@@ -58,8 +58,8 @@ jobs:
           API_KEY: ${{ secrets.ATYX_API_KEY }}
           API_SECRET: ${{ secrets.ATYX_API_SECRET }}
           MESSAGE: |
-            🚀 [atyx_notify_client](${{ gitea.server_url }}/${{ gitea.repository }}): Сборка завершилась с ошибкой ❌
+            🚀 [atyx_notify_client](https://gitea.atyx.ru/${{ gitea.repository }}): Сборка завершилась с ошибкой ❌
 
-            ❌ [Ошибка](${{ gitea.server_url }}/${{ gitea.repository }}/actions/runs/${{ gitea.run_id }}) 🌿 ${{ gitea.ref_name }}
-            📝 [${{ gitea.sha }}](${{ gitea.server_url }}/${{ gitea.repository }}/commit/${{ gitea.sha }})
+            ❌ [Ошибка](https://gitea.atyx.ru/${{ gitea.repository }}/actions/runs/${{ gitea.run_id }}) 🌿 ${{ gitea.ref_name }}
+            📝 [${{ gitea.sha }}](https://gitea.atyx.ru/${{ gitea.repository }}/commit/${{ gitea.sha }})
             💬 ${{ gitea.event.head_commit.message }}
